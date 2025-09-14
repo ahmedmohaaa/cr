@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CRUD</title>
+  <style>
+    body {
+      background: #222;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 5px;
+    }
+    input, button {
+      width: 80%;
+      padding: 8px;
+      margin: 5px 0;
+      background: #000;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 4px;
+    }
+    button {
+      background: #11133b;
+      cursor: pointer;
+      border: none;
+    }
+    table {
+      width: 100%;
+      margin-top: 20px;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #555;
+      padding: 8px;
+    }
+    th {
+      background: #11133b;
+    }
+    .actions button {
+      width: auto;
+      padding: 5px 10px;
+      margin: 2px;
+    }
+    .delete-all {
+      margin: 10px auto;
+      background: #11133b;
+      padding: 8px;
+      border-radius: 5px;
+    }
+    .search-btns button {
+      width: 40%;
+      margin: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>CRUD</h1>
+  <p>create read update delete</p>
+  <input type="text" id="title" placeholder="Title" />
+  <input type="number" id="price" placeholder="Price" />
+  <input type="number" id="taxes" placeholder="Taxes" />
+  <input type="number" id="ads" placeholder="Ads" />
+  <input type="number" id="discount" placeholder="Discount" />
+  <input type="text" id="category" placeholder="Category" />
+  <button onclick="createProduct()">Add Product</button>
+  
+  <input type="text" id="search" placeholder="Search..." onkeyup="searchData(this.value)" />
+  <div class="search-btns">
+    <button onclick="setSearchMode('title')">Search by Title</button>
+    <button onclick="setSearchMode('category')">Search by Category</button>
+  </div>
+  <div id="deleteAll" class="delete-all"></div>
+  
+  <table id="dataTable">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Title</th>
+        <th>Price</th>
+        <th>Taxes</th>
+        <th>Ads</th>
+        <th>Discount</th>
+        <th>Total</th>
+        <th>Category</th>
+        <th>Update</th>
+        <th>Delete</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    let title = document.getElementById('title');
+    let price = document.getElementById('price');
+    let taxes = document.getElementById('taxes');
+    let ads = document.getElementById('ads');
+    let discount = document.getElementById('discount');
+    let category = document.getElementById('category');
+    let search = document.getElementById('search');
+
+    let mode = 'create';
+    let tmp; 
+    let products = localStorage.products ? JSON.parse(localStorage.products) : [];
+    let searchMode = 'title';
+
+    function getTotal(p, t, a, d) {
+      return (Number(p) + Number(t) + Number(a) - Number(d)) || 0;
+    }
+
+    function createProduct() {
+      let newProduct = {
+        title: title.value,
+        price: price.value,
+        taxes: taxes.value,
+        ads: ads.value,
+        discount: discount.value,
+        total: getTotal(price.value, taxes.value, ads.value, discount.value),
+        category: category.value
+      };
+      if (mode === 'create') {
+        products.push(newProduct);
+      } else {
+        products[tmp] = newProduct;
+        mode = 'create';
+      }
+      localStorage.products = JSON.stringify(products);
+      clearInputs();
+      showData();
+    }
+
+    function clearInputs() {
+      title.value = '';
+      price.value = '';
+      taxes.value = '';
+      ads.value = '';
+      discount.value = '';
+      category.value = '';
+    }
+
+    function showData() {
+      let table = '';
+      products.forEach((prod, i) => {
+        table += `
+          <tr>
+            <td>${i+1}</td>
+            <td>${prod.title}</td>
+            <td>${prod.price}</td>
+            <td>${prod.taxes}</td>
+            <td>${prod.ads}</td>
+            <td>${prod.discount}</td>
+            <td>${prod.total}</td>
+            <td>${prod.category}</td>
+            <td class="actions"><button onclick="updateData(${i})">Update</button></td>
+            <td class="actions"><button onclick="deleteData(${i})">Delete</button></td>
+          </tr>`;
+      });
+      document.querySelector('#dataTable tbody').innerHTML = table;
+
+      let delAll = document.getElementById('deleteAll');
+      if (products.length > 0) {
+        delAll.innerHTML = `<button onclick="deleteAll()">Delete All (${products.length})</button>`;
+      } else {
+        delAll.innerHTML = '';
+      }
+    }
+
+    function deleteData(i) {
+      products.splice(i,1);
+      localStorage.products = JSON.stringify(products);
+      showData();
+    }
+
+    function deleteAll() {
+      products = [];
+      localStorage.removeItem('products');
+      showData();
+    }
+
+    function updateData(i) {
+      title.value = products[i].title;
+      price.value = products[i].price;
+      taxes.value = products[i].taxes;
+      ads.value = products[i].ads;
+      discount.value = products[i].discount;
+      category.value = products[i].category;
+      mode = 'update';
+      tmp = i;
+      window.scrollTo({top:0, behavior:'smooth'});
+    }
+
+    function setSearchMode(id) {
+      searchMode = id;
+      search.placeholder = 'Search by ' + id;
+      search.focus();
+    }
+
+    function searchData(value) {
+      let table = '';
+      products.forEach((prod, i) => {
+        if (prod[searchMode].toLowerCase().includes(value.toLowerCase())) {
+          table += `
+          <tr>
+            <td>${i+1}</td>
+            <td>${prod.title}</td>
+            <td>${prod.price}</td>
+            <td>${prod.taxes}</td>
+            <td>${prod.ads}</td>
+            <td>${prod.discount}</td>
+            <td>${prod.total}</td>
+            <td>${prod.category}</td>
+            <td class="actions"><button onclick="updateData(${i})">Update</button></td>
+            <td class="actions"><button onclick="deleteData(${i})">Delete</button></td>
+          </tr>`;
+        }
+      });
+      document.querySelector('#dataTable tbody').innerHTML = table;
+    }
+
+    showData();
+  </script>
+</body>
+</html>
